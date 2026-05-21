@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CallAndroid Link</title>
+    <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght=400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #0f172a; color: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; min-height: -webkit-fill-available; overflow: hidden; }
+        
+        .phone-container { 
+            background: #1e293b; width: 100%; max-width: 420px; height: 100vh; height: -webkit-fill-available;
+            display: flex; flex-direction: column; justify-content: space-between; padding: 15px; position: relative; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Identity Profile Overlay */
+        .overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #0f172a; z-index: 99; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 25px; text-align: center; }
+        .input-field { width: 100%; background: #1e293b; border: 1px solid #475569; padding: 12px; color: white; border-radius: 10px; margin-top: 15px; text-align: center; font-size: 16px; outline: none; }
+        .gate-btn { background: #38bdf8; color: #0f172a; padding: 12px 25px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; margin-top: 20px; width: 100%; }
+        .choice-container { display: flex; gap: 10px; margin-top: 15px; width: 100%; }
+        .choice-btn { flex: 1; padding: 10px; background: #334155; border: 1px solid #475569; color: white; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .choice-btn.active { background: #38bdf8; color: #0f172a; font-weight: bold; }
+
+        /* System Header */
+        .header { text-align: center; margin-top: 5px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .app-title { font-size: 18px; font-weight: 600; color: #38bdf8; letter-spacing: 1px; margin-bottom: 5px; }
+        .local-id { background: #0f172a; padding: 6px 14px; border-radius: 20px; display: inline-block; font-size: 13px; color: #94a3b8; border: 1px solid #334155; cursor: pointer; }
+
+        /* View Setup */
+        .tab-content { flex-grow: 1; display: none; flex-direction: column; justify-content: flex-start; margin: 10px 0; overflow-y: auto; width: 100%; }
+        .tab-content.active { display: flex; }
+
+        /* Forms & Cards */
+        .pane-card { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+        .section-title { font-size: 14px; font-weight: 600; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; }
+        .item-form { width: 100%; background: #0f172a; padding: 12px; border-radius: 10px; border: 1px solid #334155; }
+        .form-input { width: 100%; background: #1e293b; border: 1px solid #475569; padding: 10px; color: white; border-radius: 6px; margin-bottom: 8px; font-size: 14px; outline: none; }
+        .form-btn { background: #38bdf8; color: #0f172a; padding: 10px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; width: 100%; }
+        .form-btn.secondary { background: #22c55e; color: white; }
+
+        /* Shared List Designs */
+        .list-box { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+        .list-item { width: 100%; background: #0f172a; padding: 12px; border-radius: 8px; border: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; }
+        .item-clickable { cursor: pointer; }
+        .item-clickable:active { background: #1e293b; }
+        .info-col { display: flex; flex-direction: column; gap: 2px; }
+        .info-main { font-weight: 600; font-size: 15px; color: #f8fafc; }
+        .info-sub { color: #94a3b8; font-size: 12px; font-family: monospace; }
+        .action-row { display: flex; gap: 8px; }
+        .icon-btn { background: transparent; border: none; font-size: 16px; padding: 5px; cursor: pointer; }
+        .text-red { color: #ef4444; }
+        .text-green { color: #22c55e; }
+        .text-blue { color: #38bdf8; }
+
+        /* Chat Workspace Takeover */
+        .chat-container { position: absolute; top: 0; bottom: 0; left: 0; right: 0; background: #1e293b; z-index: 50; display: none; flex-direction: column; }
+        .chat-header { background: #0f172a; padding: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-break: break-word; }
+        .msg-bubble.me { background: #38bdf8; color: #0f172a; align-self: flex-end; border-bottom-right-radius: 2px; }
+        .msg-bubble.them { background: #0f172a; color: #f8fafc; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg-meta { font-size: 10px; opacity: 0.7; margin-top: 4px; display: block; text-align: right; }
+        .chat-input-area { background: #0f172a; padding: 12px; display: flex; gap: 8px; align-items: center; }
+
+        /* Request Alerts */
+        .alert-screen { position: absolute; top: 0; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.9); z-index: 100; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 30px; text-align: center; }
+        .alert-box { background: #1e293b; padding: 25px; border-radius: 15px; border: 1px solid #334155; width: 100%; max-width: 320px; }
+        
+        /* Navigation */
+        .bottom-nav { height: 60px; border-top: 1px solid #334155; display: flex; justify-content: space-around; align-items: center; background: #0f172a; margin: auto -15px -15px -15px; width: calc(100% + 30px); padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { background: transparent; border: none; color: #64748b; display: flex; flex-direction: column; align-items: center; font-size: 11px; cursor: pointer; gap: 4px; flex: 1; }
+        .nav-item i { font-size: 18px; }
+        .nav-item.active { color: #38bdf8; }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        
+        <div class="overlay" id="identity-gate">
+            <h2 style="color: #38bdf8; font-size: 26px;">CallAndroid Link</h2>
+            <p style="color: #94a3b8; font-size: 14px; margin-top: 5px;">Register your permanent secure profile</p>
+            <div class="choice-container">
+                <button class="choice-btn active" id="mode-email-btn" onclick="toggleRegMode('email')">Email Address</button>
+                <button class="choice-btn" id="mode-ip-btn" onclick="toggleRegMode('ip')">Network IP</button>
+            </div>
+            <input type="text" class="input-field" id="identity-core-input" placeholder="Enter your email address">
+            <button class="gate-btn" onclick="lockAndLoadIdentity()">Initialize Engine</button>
+        </div>
+
+        <div class="alert-screen" id="request-alert-panel">
+            <div class="alert-box">
+                <i class="fa-solid fa-comments text-blue" style="font-size: 36px; margin-bottom: 15px;"></i>
+                <h3 id="alert-title" style="margin-bottom: 8px;">Chat Request</h3>
+                <p id="alert-body" style="color: #94a3b8; font-size: 14px; margin-bottom: 20px;">Someone wants to chat.</p>
+                <div style="display: flex; gap: 12px;">
+                    <button class="form-btn" style="background:#ef4444; color:white; flex:1;" onclick="handleIncomingRequestDecision(false)">Decline</button>
+                    <button class="form-btn" style="background:#22c55e; color:white; flex:1;" onclick="handleIncomingRequestDecision(true)">Accept</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-container" id="active-chat-screen">
+            <div class="chat-header">
+                <div class="info-col">
+                    <span class="info-main" id="chat-title-text">Target Panel</span>
+                    <span class="info-sub" id="chat-status-sub">P2P Encryption Active</span>
+                </div>
+                <button class="icon-btn text-red" onclick="exitChatWorkspace()"><i class="fa-solid fa-circle-xmark" style="font-size: 20px;"></i></button>
+            </div>
+            <div class="chat-messages" id="chat-render-stream"></div>
+            <div class="chat-input-area">
+                <input type="text" id="message-typing-field" class="form-input" style="margin-bottom:0;" placeholder="Type a message..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                <button class="icon-btn text-blue" onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane" style="font-size: 20px;"></i></button>
+            </div>
+        </div>
+
+        <div class="header">
+            <div class="app-title">CallAndroid Link</div>
+            <div class="local-id" id="display-engine-id" onclick="copyEngineID()">Loading Profile...</div>
+        </div>
+
+        <div class="tab-content active" id="view-chats">
+            <div class="pane-card">
+                
+                <div class="section-title">Join Private Room</div>
+                <div class="item-form" style="display:flex; gap:8px;">
+                    <input type="text" id="room-code-join-input" class="form-input" style="margin-bottom:0;" placeholder="Enter Room Join Code">
+                    <button class="form-btn" style="width:auto; padding:0 15px;" onclick="joinPrivateRoomByCode()">Join</button>
+                </div>
+
+                <div class="section-title">Create Room</div>
+                <div class="item-form">
+                    <input type="text" id="room-name-create-input" class="form-input" placeholder="Room Name">
+                    <div class="choice-container" style="margin-top:0; margin-bottom:10px;">
+                        <button class="choice-btn active" id="room-pub-btn" onclick="setRoomPrivacyForm(true)">Public</button>
+                        <button class="choice-btn" id="room-priv-btn" onclick="setRoomPrivacyForm(false)">Private</button>
+                    </div>
+                    <button class="form-btn secondary" onclick="createNewRoom()">Launch Room</button>
+                </div>
+
+                <div class="section-title">Available Rooms</div>
+                <div class="list-box" id="rooms-render-list"></div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="view-contacts">
+            <div class="pane-card">
+                <div class="section-title">New Contact entry</div>
+                <div class="item-form">
+                    <input type="text" id="contact-name-field" class="form-input" placeholder="Label Name">
+                    <input type="text" id="contact-code-field" class="form-input" placeholder="Profile Hash Code">
+                    <button class="form-btn" onclick="saveContactEntry()">Save to Memory</button>
+                </div>
+
+                <div class="section-title">Directory</div>
+                <div class="list-box" id="contacts-render-list"></div>
+            </div>
+        </div>
+
+        <nav class="bottom-nav">
+            <button class="nav-item active" id="nav-chats" onclick="switchMainTab('chats')"><i class="fa-solid fa-message"></i>Chat</button>
+            <button class="nav-item" id="nav-contacts" onclick="switchMainTab('contacts')"><i class="fa-solid fa-address-book"></i>Contacts</button>
+        </nav>
+
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script>
+        let currentRegMode = 'email';
+        let peerEngine = null;
+        let p2pDataConn = null;
+        let currentChatTargetCode = null;
+        let localProfileCode = "";
+        
+        let storedContacts = [];
+        let storedRooms = [];
+        let isRoomPublicTarget = true;
+        
+        let currentRoomCtx = null; // Tracks if inside a group room channel
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Memory restoration
+            const cSaved = localStorage.getItem('ca_link_contacts');
+            if(cSaved) { try { storedContacts = JSON.parse(cSaved); } catch(e) { storedContacts = []; } }
+            
+            const rSaved = localStorage.getItem('ca_link_rooms');
+            if(rSaved) { try { storedRooms = JSON.parse(rSaved); } catch(e) { storedRooms = []; } }
+
+            const permanentIdentity = localStorage.getItem('ca_permanent_identity');
+            if(permanentIdentity) {
+                document.getElementById('identity-gate').style.display = 'none';
+                initPeerNetworkEngine(permanentIdentity);
+            }
+
+            renderContactsView();
+            renderRoomsView();
+        });
+
+        function toggleRegMode(mode) {
+            currentRegMode = mode;
+            document.getElementById('mode-email-btn').className = mode === 'email' ? 'choice-btn active' : 'choice-btn';
+            document.getElementById('mode-ip-btn').className = mode === 'ip' ? 'choice-btn active' : 'choice-btn';
+            const input = document.getElementById('identity-core-input');
+            if(mode === 'ip') { input.style.display = 'none'; }
+            else { input.style.display = 'block'; input.placeholder = "Enter your email address"; }
+        }
+
+        function lockAndLoadIdentity() {
+            let uniqueSeedString = "";
+            if(currentRegMode === 'email') {
+                const mailVal = document.getElementById('identity-core-input').value.trim();
+                if(!mailVal || !mailVal.includes('@')) { alert("Provide a real email structure."); return; }
+                uniqueSeedString = generateStaticHash(mailVal);
+            } else {
+                uniqueSeedString = Math.floor(1000 + Math.random() * 9000).toString();
+            }
+            localStorage.setItem('ca_permanent_identity', uniqueSeedString);
+            document.getElementById('identity-gate').style.display = 'none';
+            initPeerNetworkEngine(uniqueSeedString);
+        }
+
+        function generateStaticHash(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) { hash = str.charCodeAt(i) + ((hash << 5) - hash); }
+            const charset = "0123456789abcdefghijklmnopqrstuv"; 
+            let code = ""; hash = Math.abs(hash);
+            for(let j=0; j<4; j++) { code += charset[(hash + j) % charset.length]; }
+            return code;
+        }
+
+        function initPeerNetworkEngine(idCode) {
+            localProfileCode = idCode;
+            peerEngine = new Peer(idCode);
+            
+            peerEngine.on('open', (id) => {
+                document.getElementById('display-engine-id').innerText = "My Hash Code: " + id;
+            });
+
+            peerEngine.on('connection', (conn) => {
+                // Incoming signaling system
+                conn.on('data', (payload) => {
+                    if(payload.type === "CHAT_REQUEST") {
+                        p2pDataConn = conn;
+                        currentChatTargetCode = payload.sender;
+                        showRequestAlert(payload.senderName || payload.sender);
+                    }
+                    if(payload.type === "REQUEST_ACCEPTED") {
+                        p2pDataConn = conn;
+                        launchChatWorkspace(currentChatTargetCode, false);
+                    }
+                    if(payload.type === "REQUEST_DECLINED") {
+                        alert("Your chat request was declined.");
+                        p2pDataConn = null;
+                    }
+                    if(payload.type === "TEXT_MSG") {
+                        appendMessageBubble(payload.text, 'them', payload.senderName);
+                    }
+                });
+            });
+        }
+
+        function copyEngineID() {
+            if(localProfileCode) {
+                navigator.clipboard.writeText(localProfileCode);
+                alert("Copied to clipboard: " + localProfileCode);
+            }
+        }
+
+        function switchMainTab(target) {
+            ['chats', 'contacts'].forEach(t => {
+                document.getElementById('view-' + t).classList.remove('active');
+                document.getElementById('nav-' + t).classList.remove('active');
+            });
+            document.getElementById('view-' + target).classList.add('active');
+            document.getElementById('nav-' + target).classList.add('active');
+        }
+
+        /* CONTACTS SYSTEM */
+        function renderContactsView() {
+            const container = document.getElementById('contacts-render-list');
+            container.innerHTML = "";
+            if(storedContacts.length === 0) {
+                container.innerHTML = `<p style="color:#64748b; font-size:13px; text-align:center; padding:10px;">No saved contacts.</p>`;
+                return;
+            }
+            storedContacts.forEach((contact, idx) => {
+                const item = document.createElement('div');
+                item.className = "list-item";
+                item.innerHTML = `
+                    <div class="info-col">
+                        <span class="info-main">${contact.name}</span>
+                        <span class="info-sub">${contact.code}</span>
+                    </div>
+                    <div class="action-row">
+                        <button class="icon-btn text-green" onclick="sendDirectChatRequest('${contact.code}', '${contact.name}')"><i class="fa-solid fa-paper-plane"></i></button>
+                        <button class="icon-btn text-red" onclick="deleteContactRecord(${idx})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function saveContactEntry() {
+            const nameEl = document.getElementById('contact-name-field');
+            const codeEl = document.getElementById('contact-code-field');
+            const name = nameEl.value.trim();
+            const code = codeEl.value.trim().toLowerCase();
+
+            if(!name || !code) { alert("Complete both fields."); return; }
+            
+            storedContacts.push({ name: name, code: code });
+            localStorage.setItem('ca_link_contacts', JSON.stringify(storedContacts));
+            nameEl.value = ""; codeEl.value = "";
+            renderContactsView();
+        }
+
+        function deleteContactRecord(idx) {
+            storedContacts.splice(idx, 1);
+            localStorage.setItem('ca_link_contacts', JSON.stringify(storedContacts));
+            renderContactsView();
+        }
+
+        /* OUTGOING REQ WORKFLOW */
+        function sendDirectChatRequest(targetCode, targetName) {
+            if(targetCode === localProfileCode) { alert("You cannot request yourself."); return; }
+            currentChatTargetCode = targetCode;
+            
+            alert("Sending request to " + targetName + "... Please wait.");
+            
+            let conn = peerEngine.connect(targetCode);
+            conn.on('open', () => {
+                conn.send({
+                    type: "CHAT_REQUEST",
+                    sender: localProfileCode,
+                    senderName: "Peer " + localProfileCode
+                });
+            });
+
+            conn.on('data', (payload) => {
+                if(payload.type === "REQUEST_ACCEPTED") {
+                    p2pDataConn = conn;
+                    launchChatWorkspace(targetName, false);
+                }
+                if(payload.type === "REQUEST_DECLINED") {
+                    alert("Your request was declined.");
+                }
+                if(payload.type === "TEXT_MSG") {
+                    appendMessageBubble(payload.text, 'them', targetName);
+                }
+            });
+        }
+
+        /* INCOMING REQ WORKFLOW */
+        function showRequestAlert(name) {
+            document.getElementById('alert-body').innerText = name + " wants to start a private chat window with you.";
+            document.getElementById('request-alert-panel').style.display = "flex";
+        }
+
+        function handleIncomingRequestDecision(accepted) {
+            document.getElementById('request-alert-panel').style.display = "none";
+            if(accepted && p2pDataConn) {
+                p2pDataConn.send({ type: "REQUEST_ACCEPTED" });
+                launchChatWorkspace("Peer " + currentChatTargetCode, false);
+            } else if(p2pDataConn) {
+                p2pDataConn.send({ type: "REQUEST_DECLINED" });
+                p2pDataConn.close();
+                p2pDataConn = null;
+            }
+        }
+
+        /* ROOMS LOGIC */
+        function setRoomPrivacyForm(isPub) {
+            isRoomPublicTarget = isPub;
+            document.getElementById('room-pub-btn').className = isPub ? 'choice-btn active' : 'choice-btn';
+            document.getElementById('room-priv-btn').className = !isPub ? 'choice-btn active' : 'choice-btn';
+        }
+
+        function renderRoomsView() {
+            const container = document.getElementById('rooms-render-list');
+            container.innerHTML = "";
+            
+            // Filters out private items from dashboard display unless you generated them locally
+            const visibleRooms = storedRooms.filter(r => r.isPublic === true);
+
+            if(visibleRooms.length === 0) {
+                container.innerHTML = `<p style="color:#64748b; font-size:13px; text-align:center; padding:10px;">No public rooms active.</p>`;
+                return;
+            }
+
+            visibleRooms.forEach((room) => {
+                const item = document.createElement('div');
+                item.className = "list-item item-clickable";
+                item.onclick = () => entryRoomWorkspace(room.id, room.name);
+                item.innerHTML = `
+                    <div class="info-col">
+                        <span class="info-main">${room.name}</span>
+                        <span class="info-sub">Public Channel</span>
+                    </div>
+                    <i class="fa-solid fa-right-to-bracket text-blue"></i>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function createNewRoom() {
+            const titleIn = document.getElementById('room-name-create-input');
+            const name = titleIn.value.trim();
+            if(!name) { alert("Enter room name."); return; }
+
+            const generatedId = "room_" + Math.random().toString(36).substring(2, 7);
+            const newRoomObj = {
+                id: generatedId,
+                name: name,
+                isPublic: isRoomPublicTarget
+            };
+
+            storedRooms.push(newRoomObj);
+            localStorage.setItem('ca_link_rooms', JSON.stringify(storedRooms));
+            titleIn.value = "";
+            
+            renderRoomsView();
+
+            if(!isRoomPublicTarget) {
+                alert("Private Room Created!\nShare this join code: " + generatedId);
+            }
+            
+            entryRoomWorkspace(generatedId, name);
+        }
+
+        function joinPrivateRoomByCode() {
+            const codeIn = document.getElementById('room-code-join-input');
+            const code = codeIn.value.trim();
+            if(!code) return;
+
+            // Simulated dynamic sync check
+            entryRoomWorkspace(code, "Private Channel (" + code + ")");
+            codeIn.value = "";
+        }
+
+        /* CHAT FRAMEWORK INTERFACE */
+        function launchChatWorkspace(title, isGroupMode) {
+            currentRoomCtx = isGroupMode ? title : null;
+            document.getElementById('chat-title-text').innerText = title;
+            document.getElementById('chat-status-sub').innerText = isGroupMode ? "Mesh Broadcasting" : "Secure P2P Link";
+            document.getElementById('chat-render-stream').innerHTML = "";
+            document.getElementById('active-chat-screen').style.display = "flex";
+        }
+
+        function entryRoomWorkspace(roomId, roomName) {
+            launchChatWorkspace(roomName, true);
+            currentRoomCtx = roomId;
+            appendMessageBubble("Joined dynamic simulation channel: " + roomName, 'them', "System");
+        }
+
+        function sendChatMessage() {
+            const inputel = document.getElementById('message-typing-field');
+            const val = inputel.value.trim();
+            if(!val) return;
+
+            appendMessageBubble(val, 'me', 'Me');
+            inputel.value = "";
+
+            if(currentRoomCtx) {
+                // Group Room Mock-Reply Processing
+                setTimeout(() => {
+                    appendMessageBubble("Echo processing node captured message.", 'them', "Server Node");
+                }, 1200);
+            } else if(p2pDataConn && p2pDataConn.open) {
+                // Direct signaling
+                p2pDataConn.send({
+                    type: "TEXT_MSG",
+                    text: val,
+                    senderName: "Peer " + localProfileCode
+                });
+            }
+        }
+
+        function appendMessageBubble(text, direction, senderName) {
+            const box = document.getElementById('chat-render-stream');
+            const bubble = document.createElement('div');
+            bubble.className = "msg-bubble " + direction;
+            
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+
+            bubble.innerHTML = `
+                <strong style="font-size:11px; display:block; margin-bottom:2px;">${senderName}</strong>
+                ${text}
+                <span class="msg-meta">${timeStr}</span>
+            `;
+            box.appendChild(bubble);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function exitChatWorkspace() {
+            document.getElementById('active-chat-screen').style.display = "none";
+            if(p2pDataConn) {
+                p2pDataConn.close();
+                p2pDataConn = null;
+            }
+            currentRoomCtx = null;
+        }
+    </script>
+</body>
+</html>
